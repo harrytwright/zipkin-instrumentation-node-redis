@@ -19,7 +19,9 @@ function expectCorrectSpanData(span, command, multi) {
   expect(span.name).to.equal(command);
   expect(span.localEndpoint.serviceName).to.equal('unknown');
   expect(span.remoteEndpoint.serviceName).to.equal('redis');
-  expect(span.remoteEndpoint.ipv4).to.equal(redisOptions.host);
+
+  // For certain tests docker on docker will be used where the host is not an ipv4
+  if (require('net').isIPv4(redisOptions.host)) expect(span.remoteEndpoint.ipv4).to.equal(redisOptions.host);
 
   if (!!multi && Array.isArray(multi)) {
     expect(span.tags.commands).to.be.eq(JSON.stringify(multi))
