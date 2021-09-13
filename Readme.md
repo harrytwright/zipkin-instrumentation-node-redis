@@ -1,5 +1,7 @@
 # zipkin-instrumentation-node-redis
 
+[![Node.js CI](https://github.com/harrytwright/zipkin-instrumentation-node-redis/actions/workflows/node.js.yml/badge.svg)](https://github.com/harrytwright/zipkin-instrumentation-node-redis/actions/workflows/node.js.yml)
+
 > This is a small experimental re-write of the original [zipkin-instrumentation-redis](https://github.com/openzipkin/zipkin-js/blob/master/packages/zipkin-instrumentation-redis)
 
 This library will wrap the now old [redis < V4](https://github.com/NodeRedis/node-redis/tree/v3.1) not just the client itself
