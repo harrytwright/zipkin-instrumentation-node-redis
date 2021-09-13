@@ -24,3 +24,8 @@ const client = redis.createClient()
 client.set('key', 'value', redis.print)
 client.set('get', 'value', redis.print)
 ```
+
+## TODO:
+
+- [ ] Test the implementation with express/any http server
+- [ ] Update for #1
