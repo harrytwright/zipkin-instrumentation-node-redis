@@ -16,37 +16,6 @@ const { extendWithDefaultCommands } = require('redis/dist/lib/commander')
  * */
 module.exports = ({ tracer, remoteServiceName = 'redis', serviceName = tracer.localEndpoint.serviceName }) => {
   return function (options) {
-    const impl = redis.default.commandsExecutor
-    redis.default.commandsExecutor = async function (command, args) {
-      const originalId = tracer.id
-
-      return new Promise((resolve, reject) => {
-        const id = tracer.createChildId()
-        tracer.letId(id, () => {
-          // Patchy but works ??
-          commonAnnotations(command.transformArguments(args)[0].toLowerCase())
-        })
-
-        impl.apply(this,[command, args]).then((...responses) => {
-          tracer.letId(id, () => {
-            tracer.recordAnnotation(new Annotation.ClientRecv())
-          })
-          tracer.letId(originalId, () => {
-            resolve(...responses)
-          })
-        }).catch(err => {
-          tracer.letId(id, () => {
-            tracer.recordBinary('error', err.message || /* istanbul ignore next */ String(err))
-            tracer.recordAnnotation(new Annotation.ClientRecv())
-          })
-
-          tracer.letId(originalId, () => {
-            reject(err)
-          })
-        })
-      })
-    }
-
     const weakMap = new WeakMap([])
     const addCmdImpl = multi.default.prototype.addCommand
     multi.default.prototype.addCommand = function (args, transformReply) {
@@ -57,42 +26,59 @@ module.exports = ({ tracer, remoteServiceName = 'redis', serviceName = tracer.lo
       return addCmdImpl.apply(this, [args, transformReply])
     }
 
-    const multiImpl = multi.default.prototype.exec
-    multi.default.prototype.exec = async function(execAsPipeline = false) {
+    /**
+     * Since the impl is the same make it here and just set a custom rpc function
+     * */
+    function proxy(impl, rpcFn) {
       const originalId = tracer.id
-
-      const self = this;
-      return new Promise((resolve, reject) => {
-        const id = tracer.createChildId()
-        tracer.letId(id, () => {
-          // Patchy but works ??
-          commonAnnotations('multi')
-          tracer.recordBinary('commands', JSON.stringify(weakMap.get(self)))
-        })
-
-        multiImpl.apply(this,[execAsPipeline]).then((...responses) => {
+      return function (...args) {
+        let self = this;
+        return new Promise((resolve, reject) => {
+          const id = tracer.createChildId()
           tracer.letId(id, () => {
-            tracer.recordAnnotation(new Annotation.ClientRecv())
-          })
-          tracer.letId(originalId, () => {
-            resolve(...responses)
-          })
-        }).catch(err => {
-          tracer.letId(id, () => {
-            tracer.recordBinary('error', err.message || /* istanbul ignore next */ String(err))
-            tracer.recordAnnotation(new Annotation.ClientRecv())
+            commonAnnotations(rpcFn(...args))
+            // This is for multi
+            if (weakMap.has(self)) {
+              const commands = JSON.stringify(weakMap.get(self).map(el => el.toLowerCase()))
+              tracer.recordBinary('commands', commands)
+            }
           })
 
-          tracer.letId(originalId, () => {
-            reject(err)
-          })
+          impl.apply(self, [...args])
+            .then((...responses) => {
+              tracer.letId(id, () => {
+                tracer.recordAnnotation(new Annotation.ClientRecv())
+              })
+              tracer.letId(originalId, () => {
+                return resolve(...responses)
+              })
+            })
+            .catch(err => {
+              tracer.letId(id, () => {
+                tracer.recordBinary('error', err.message || /* istanbul ignore next */ String(err))
+                tracer.recordAnnotation(new Annotation.ClientRecv())
+              })
+
+              tracer.letId(originalId, () => {
+                return reject(err)
+              })
+            })
         })
-      })
+      }
     }
 
-    // Seems to be a way around??
+    redis.default.commandsExecutor = proxy(redis.default.commandsExecutor, (command, args) => {
+      return command.transformArguments(args)[0].toLowerCase()
+    })
+
+    redis.default.prototype.sendCommand = proxy(redis.default.prototype.sendCommand, (args) => {
+      return args[0]
+    })
+
+    multi.default.prototype.exec = proxy(multi.default.prototype.exec, () => 'multi')
+
+    // Pass the new `commandsExecutor` method to commander
     extendWithDefaultCommands(redis.default, redis.default.commandsExecutor)
-    extendWithDefaultCommands(multi.default, multi.default.commandsExecutor)
 
     function commonAnnotations (rpc) {
       tracer.recordRpc(rpc)

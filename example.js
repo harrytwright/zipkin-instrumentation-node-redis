@@ -13,10 +13,12 @@
   )
   await client.connect();
 
-  const results = await client.multi()
-    .set('key', 'value')
-    .get('key')
-    .exec()
+  // const results = await client.multi()
+  //   .set('key', 'value')
+  //   .get('key')
+  //   .exec()
+
+  const results = await client.set('key', 'value')
 
   console.log(results)
 
