@@ -1,14 +1,24 @@
-const { Tracer, ExplicitContext, ConsoleRecorder } = require('zipkin');
+(async () => {
+  const { Tracer, ExplicitContext, ConsoleRecorder } = require('zipkin')
 
-const tracer = new Tracer({
-  ctxImpl: new ExplicitContext(), // implicit in-process context
-  recorder: new ConsoleRecorder(), // batched http recorder
-  localServiceName: 'tester' // name of this application
-});
+  const tracer = new Tracer({
+    ctxImpl: new ExplicitContext(), // implicit in-process context
+    recorder: new ConsoleRecorder(), // batched http recorder
+    localServiceName: 'tester' // name of this application
+  });
 
-// This will work just like the redis object called by `require('redis')`
-const redis = require('./src/zipkinClient')({ tracer })
 
-const client = redis.createClient()
-client.set('key', 'value', redis.print)
-client.set('get', 'value', redis.print)
+  const client = require('./src/zipkinClient')({ tracer })(
+    { socket: { port: process.env.REDIS_PORT, host: process.env.REDIS_HOST } }
+  )
+  await client.connect();
+
+  const results = await client.multi()
+    .set('key', 'value')
+    .get('key')
+    .exec()
+
+  console.log(results)
+
+  await client.quit()
+})()
