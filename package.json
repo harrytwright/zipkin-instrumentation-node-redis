@@ -11,6 +11,9 @@
   "keywords": [
     "zipkin-instrumentation"
   ],
+  "repository": {
+    "url": "https://github.com/harrytwright/zipkin-instrumentation-node-redis"
+  },
   "author": "Harry Wright",
   "license": "Apache-2.0",
   "dependencies": {
