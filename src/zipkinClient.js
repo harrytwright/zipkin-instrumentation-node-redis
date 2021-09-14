@@ -29,10 +29,10 @@ module.exports = ({ tracer, remoteServiceName = 'redis', serviceName = tracer.lo
     /**
      * Since the impl is the same make it here and just set a custom rpc function
      * */
-    function proxy(impl, rpcFn) {
+    function proxy (impl, rpcFn) {
       const originalId = tracer.id
       return function (...args) {
-        let self = this;
+        const self = this
         return new Promise((resolve, reject) => {
           const id = tracer.createChildId()
           tracer.letId(id, () => {
