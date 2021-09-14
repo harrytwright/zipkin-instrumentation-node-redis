@@ -7,7 +7,7 @@ const tracer = new Tracer({
 });
 
 // This will work just like the redis object called by `require('redis')`
-const redis = require('./src/zipkinClient')({ tracer })
+const redis = require('../src/zipkinClient')({ tracer })
 
 const client = redis.createClient()
 client.set('key', 'value', redis.print)
