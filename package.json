@@ -14,8 +14,7 @@
   "author": "Harry Wright",
   "license": "Apache-2.0",
   "dependencies": {
-    "redis": "^3.1.2",
-    "redis-commands": "^1.7.0",
+    "redis": "^4.0.0-rc.1",
     "zipkin": "^0.22.0"
   },
   "devDependencies": {

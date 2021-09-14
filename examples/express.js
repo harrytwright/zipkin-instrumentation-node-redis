@@ -1,48 +1,57 @@
-const CLSContext = require('zipkin-context-cls')
-const { HttpLogger } = require('zipkin-transport-http')
-const { expressMiddleware } = require('zipkin-instrumentation-express')
-const { Tracer, BatchRecorder, jsonEncoder: { JSON_V2 } } = require('zipkin');
+(async () => {
+  const express = require('express')
+  const zipkinMiddleware = require('zipkin-instrumentation-express').expressMiddleware;
 
-const express = require('express')
+  const { HttpLogger } = require('zipkin-transport-http');
+  const Context  = require('zipkin-context-cls')
 
-const tracer = new Tracer({
-  ctxImpl: new CLSContext('zipkin'), // implicit in-process context
-  recorder: new BatchRecorder({
+  const { Tracer, BatchRecorder, jsonEncoder: { JSON_V2 } } = require('zipkin')
+
+  const recorder = new BatchRecorder({
     logger: new HttpLogger({
-      endpoint: 'http://localhost:9411/api/v2/spans',
+      endpoint: 'http://localhost:9411/api/v2/spans', // Required
       jsonEncoder: JSON_V2
     })
-  }), // batched http recorder
-  localServiceName: 'tester' // name of this application
-});
-
-// This will work just like the redis object called by `require('redis')`
-const redis = require('../src/zipkinClient')({ tracer })
-const client = redis.createClient()
-
-const app = express()
-
-app.use(expressMiddleware({ tracer, port: 3000 }))
-
-app.get('/:key', (req, res, next) => {
-  const key = req.params.key;
-  client.get(key, (err, result) => {
-    if (err) return next(err);
-    Object.defineProperty(req, '__cache_result', { get: () => result })
-    next()
   })
-}, (req, res, next) => {
-  const key = req.params.key;
-  const query = req.query.value;
 
-  if (query && query !== req.__cache_result) {
-    return client.set(key, query, (err, result) => {
-      if (err) return next(err);
-      return res.status(200).send(result).end()
-    })
+  const tracer = new Tracer({
+    ctxImpl: new Context('zipkin', true), // cls context
+    recorder: recorder, // batched http recorder
+    localServiceName: 'example' // name of this application
+  });
+
+  const client = require('../src/zipkinClient')({ tracer })(
+    { socket: { port: process.env.REDIS_PORT, host: process.env.REDIS_HOST } }
+  )
+
+  await client.connect();
+
+  const app = express()
+
+  app.use(zipkinMiddleware({ tracer, port: 3000 }))
+
+  const cache = async (req, res, next) => {
+    const key = req.params.key;
+
+    const result = await client.get(key)
+    Object.defineProperty(req, '__cache_value', { get: () => result });
+    return next()
   }
 
-  return res.status(200).send(req.__cache_result).end()
-})
+  app.get('/:key', cache, async (req, res, next) => {
+    const key = req.params.key;
+    const value = req.query.value;
 
-app.listen(3000, () => console.log('Listening on 3k'))
+    if (value && value !== req.__cache_value) {
+      const reply = await client.set(key, value);
+      return res.status(200).send(reply).end()
+    }
+
+    return res.status(200).send(req.__cache_value).end()
+  })
+
+  app.listen(3000, () => {
+    console.log('Starting at 3000')
+  })
+
+})()
