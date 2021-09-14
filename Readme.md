@@ -6,6 +6,20 @@
 
 This library will wrap the now [redis V4](https://github.com/NodeRedis/node-redis) client
 
+## Installation
+
+For the new promises based `node-redis`
+
+```shell
+npm install zipkin-instrumentation-node-redis
+```
+
+For the <=v3.1 node-redis
+
+```shell
+npm install zipkin-instrumentation-node-redis@legacy
+```
+
 ## Usage
 
 ```javascript
