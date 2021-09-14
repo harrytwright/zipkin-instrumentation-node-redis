@@ -6,6 +6,12 @@
 
 This library will wrap the now old [redis < V4](https://github.com/NodeRedis/node-redis/tree/v3.1) not just the client itself
 
+## Install
+
+```shell
+npm install zipkin-instrumentation-node-redis@legacy
+```
+
 ## Usage
 
 ```javascript

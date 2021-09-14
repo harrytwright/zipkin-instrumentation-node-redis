@@ -17,7 +17,7 @@ const tracer = new Tracer({
 });
 
 // This will work just like the redis object called by `require('redis')`
-const redis = require('../src/zipkinClient')({ tracer })
+const redis = require('../src/zipkinClient')({ tracer, listArgs: true })
 const client = redis.createClient()
 
 const app = express()
@@ -45,4 +45,4 @@ app.get('/:key', (req, res, next) => {
   return res.status(200).send(req.__cache_result).end()
 })
 
-app.listen(3000, () => console.log('Listening on 3k'))
+app.listen(3000, () => console.log('Listening on 3000'))

@@ -28,11 +28,12 @@ const restrictedCommands = [
 
 /**
  * @param {Object} data
- * @param {Tracer} data.tracer
- * @param {string} [data.remoteServiceName]
- * @param {string} [data.serviceName]
+ * @param {Tracer} data.tracer - The Tracer being used
+ * @param {string} [data.remoteServiceName] - The name of the remote redis service
+ * @param {string} [data.serviceName] - The local service
+ * @param {Boolean} [data.listArgs] - Should we list the args as tags, help w/ debugging logs
  * */
-module.exports = ({ tracer, remoteServiceName = 'redis', serviceName = tracer.localEndpoint.serviceName }) => {
+module.exports = ({ tracer, remoteServiceName = 'redis', serviceName = tracer.localEndpoint.serviceName, listArgs = false }) => {
   /**
    * Wrap the callback to call zipkin once finished
    *
@@ -97,6 +98,7 @@ module.exports = ({ tracer, remoteServiceName = 'redis', serviceName = tracer.lo
       const id = tracer.createChildId()
       tracer.letId(id, () => {
         this._commonAnnotations(command)
+        if (listArgs) tracer.recordBinary('args', JSON.stringify([...args]))
       })
 
       // Run the previous implementation of the method
