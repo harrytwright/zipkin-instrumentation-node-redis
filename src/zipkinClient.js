@@ -16,9 +16,9 @@ const { extendWithDefaultCommands } = require('redis/dist/lib/commander')
 
 /**
  * @param {Object} data
- * @param {module::zipkin.Tracer} data.tracer
- * @param {string} [data.remoteServiceName]
- * @param {string} [data.serviceName]
+ * @param {module::zipkin.Tracer} data.tracer -
+ * @param {string} [data.remoteServiceName] -
+ * @param {string} [data.serviceName] -
  *
  * @returns {createClient}
  * */

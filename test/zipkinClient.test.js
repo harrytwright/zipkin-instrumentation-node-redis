@@ -62,7 +62,7 @@ describe('redis', function () {
   });
 
   // This is annoying since i'm not sure how to trigger an error that also gets me a response
-  xit('should handle redis errors', async function () {
+  it('should handle redis errors', async function () {
     const logSpan = sinon.spy();
 
     const tracer = createTracer(logSpan)
@@ -71,15 +71,14 @@ describe('redis', function () {
     await client.connect()
 
     try {
-      const result = await client.get('test:redis:error.zipkin')
+      const result = await client.sendCommand(['JSON.INVALID_COMMAND', 'test:redis:error.zipkin'])
       expect.fail(`${result} should never be called`)
     } catch (err) {
-      console.log(err)
       expect(err).to.not.be.undefined
 
       const spans = logSpan.args.map(arg => arg[0]);
       expect(spans).to.have.length(1)
-      spans.forEach((span) => expectCorrectSpanData(span, 'get'))
+      spans.forEach((span) => expectCorrectSpanData(span, 'json.invalid_command'))
     }
   });
 
