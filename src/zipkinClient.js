@@ -7,15 +7,26 @@ const multi = require('redis/dist/lib/multi-command')
 const { extendWithDefaultCommands } = require('redis/dist/lib/commander')
 
 /**
+ * @callback createClient
+ *
+ * @template M,S
+ * @param {RedisClientOptions|undefined} [options]
+ * @returns {RedisClient}
+ * */
+
+/**
  * @param {Object} data
- * @param {Tracer} data.tracer
+ * @param {module::zipkin.Tracer} data.tracer
  * @param {string} [data.remoteServiceName]
  * @param {string} [data.serviceName]
  *
- * @returns {Function}
+ * @returns {createClient}
  * */
-module.exports = ({ tracer, remoteServiceName = 'redis', serviceName = tracer.localEndpoint.serviceName }) => {
-  return function (options) {
+module.exports = function createZipkin ({ tracer, remoteServiceName = 'redis', serviceName = tracer.localEndpoint.serviceName }) {
+  /**
+   * @type {createClient}
+   * */
+  return function createClient(options) {
     const weakMap = new WeakMap([])
     const addCmdImpl = multi.default.prototype.addCommand
     multi.default.prototype.addCommand = function (args, transformReply) {
@@ -28,6 +39,13 @@ module.exports = ({ tracer, remoteServiceName = 'redis', serviceName = tracer.lo
 
     /**
      * Since the impl is the same make it here and just set a custom rpc function
+     *
+     * @template {Function} I
+     *
+     * @param {I} impl - The method to be proxied
+     * @param {Function} rpcFn - The function to create the RPC
+     *
+     * @return {I}
      * */
     function proxy (impl, rpcFn) {
       const originalId = tracer.id
