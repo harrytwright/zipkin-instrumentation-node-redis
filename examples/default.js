@@ -11,6 +11,7 @@
   const client = require('../src/zipkinClient')({ tracer })(
     { socket: { port: process.env.REDIS_PORT, host: process.env.REDIS_HOST } }
   )
+
   await client.connect();
 
   // const results = await client.multi()

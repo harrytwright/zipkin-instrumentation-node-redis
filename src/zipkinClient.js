@@ -19,23 +19,24 @@ const { extendWithDefaultCommands } = require('redis/dist/lib/commander')
  * @param {module::zipkin.Tracer} data.tracer -
  * @param {string} [data.remoteServiceName] -
  * @param {string} [data.serviceName] -
+ * @param {boolean} [data.listArgs] -
  *
  * @returns {createClient}
  * */
-module.exports = function createZipkin ({ tracer, remoteServiceName = 'redis', serviceName = tracer.localEndpoint.serviceName }) {
+module.exports = function createZipkin ({ tracer, remoteServiceName = 'redis', serviceName = tracer.localEndpoint.serviceName, listArgs = false }) {
   /**
    * @type {createClient}
    * */
   return function createClient(options) {
     const weakMap = new WeakMap([])
     const addCmdImpl = multi.default.prototype.addCommand
-    multi.default.prototype.addCommand = function (args, transformReply) {
+    listArgs && (multi.default.prototype.addCommand = function (args, transformReply) {
       // Just so we can get the commands binary
       if (!weakMap.has(this)) { weakMap.set(this, []) }
       weakMap.get(this).push(args[0])
 
       return addCmdImpl.apply(this, [args, transformReply])
-    }
+    })
 
     /**
      * Since the impl is the same make it here and just set a custom rpc function
@@ -44,10 +45,11 @@ module.exports = function createZipkin ({ tracer, remoteServiceName = 'redis', s
      *
      * @param {I} impl - The method to be proxied
      * @param {Function} rpcFn - The function to create the RPC
+     * @param {Function} [binaryFn] - Function to add extra binary
      *
      * @return {I}
      * */
-    function proxy (impl, rpcFn) {
+    function proxy (impl, rpcFn, binaryFn) {
       const originalId = tracer.id
       return function (...args) {
         const self = this
@@ -55,11 +57,15 @@ module.exports = function createZipkin ({ tracer, remoteServiceName = 'redis', s
           const id = tracer.createChildId()
           tracer.letId(id, () => {
             commonAnnotations(rpcFn(...args))
-            // This is for multi
-            if (weakMap.has(self)) {
-              const commands = JSON.stringify(weakMap.get(self).map(el => el.toLowerCase()))
-              tracer.recordBinary('commands', commands)
+            if (listArgs && binaryFn) {
+              const [key, value] = binaryFn.apply(this, [...args])
+              tracer.recordBinary(key, value)
             }
+            // This is for multi
+            // if (listArgs && weakMap.has(self)) {
+            //   const commands = JSON.stringify(weakMap.get(self).map(el => el.toLowerCase()))
+            //   tracer.recordBinary('commands', commands)
+            // }
           })
 
           impl.apply(self, [...args])
@@ -87,13 +93,16 @@ module.exports = function createZipkin ({ tracer, remoteServiceName = 'redis', s
 
     redis.default.commandsExecutor = proxy(redis.default.commandsExecutor, (command, args) => {
       return command.transformArguments(args)[0].toLowerCase()
+    }, (command, args) => ['args',  JSON.stringify(command.transformArguments(args)[1])])
+
+    redis.default.prototype.sendCommand = proxy(redis.default.prototype.sendCommand, (args) => args[0], (args) => {
+      return ['args', JSON.stringify(args.splice(1, args.length - 1))]
     })
 
-    redis.default.prototype.sendCommand = proxy(redis.default.prototype.sendCommand, (args) => {
-      return args[0]
+    multi.default.prototype.exec = proxy(multi.default.prototype.exec, () => 'multi', function () {
+      const commands = JSON.stringify(weakMap.get(this).map(el => el.toLowerCase()))
+      return ['commands', commands]
     })
-
-    multi.default.prototype.exec = proxy(multi.default.prototype.exec, () => 'multi')
 
     // Pass the new `commandsExecutor` method to commander
     extendWithDefaultCommands(redis.default, redis.default.commandsExecutor)
