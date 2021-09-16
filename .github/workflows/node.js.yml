@@ -53,7 +53,7 @@ jobs:
         run: npm ci
 
       - name: Connect to Redis
-        run: npm run {{ matrix.test-suite }}
+        run: npm run ${{ matrix.test-suite }}
         env:
           # The hostname used to communicate with the Redis service container
           REDIS_HOST: redis
