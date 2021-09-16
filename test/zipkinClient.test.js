@@ -11,8 +11,8 @@ const socketOptions = {
   port: process.env.REDIS_PORT || 6379
 }
 
-function redis (tracer) {
-  return zipkinClient({ tracer })
+function redis (tracer, options) {
+  return zipkinClient({ tracer, ...options })
 }
 
 function expectCorrectSpanData(span, command, multi) {
@@ -104,7 +104,7 @@ describe('redis', function () {
 
     const tracer = createTracer(logSpan)
 
-    client = redis(tracer)({ socket: socketOptions })
+    client = redis(tracer, { listArgs: true })({ socket: socketOptions })
     await client.connect()
 
     const multi = client.multi()
