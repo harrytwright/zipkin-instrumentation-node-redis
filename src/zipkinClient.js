@@ -61,11 +61,6 @@ module.exports = function createZipkin ({ tracer, remoteServiceName = 'redis', s
               const [key, value] = binaryFn.apply(this, [...args])
               tracer.recordBinary(key, value)
             }
-            // This is for multi
-            // if (listArgs && weakMap.has(self)) {
-            //   const commands = JSON.stringify(weakMap.get(self).map(el => el.toLowerCase()))
-            //   tracer.recordBinary('commands', commands)
-            // }
           })
 
           impl.apply(self, [...args])
@@ -112,8 +107,8 @@ module.exports = function createZipkin ({ tracer, remoteServiceName = 'redis', s
       tracer.recordAnnotation(new Annotation.ServiceName(serviceName))
       tracer.recordAnnotation(new Annotation.ServerAddr({
         serviceName: remoteServiceName,
-        host: new InetAddress(options?.socket?.host || '127.0.0.1'), // This is a guess work
-        port: options?.socket?.port || 6379
+        host: new InetAddress(options?.socket?.host || /* istanbul ignore next */ '127.0.0.1'), // This is a guess work
+        port: options?.socket?.port || /* istanbul ignore next */ 6379
       }))
       tracer.recordAnnotation(new Annotation.ClientSend())
     }

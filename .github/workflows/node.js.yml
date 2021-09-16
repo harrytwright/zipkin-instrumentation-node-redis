@@ -27,7 +27,7 @@ jobs:
 
     strategy:
       matrix:
-        test-suite: [test, 'test:ts'] # Add multiple tests but since they use the same build just do it here
+        test-suite: [test, 'test:ts', coverage] # Add multiple tests but since they use the same build just do it here
 
     # Service containers to run with `container-job`
     services:
