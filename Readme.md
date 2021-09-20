@@ -1,6 +1,7 @@
 # zipkin-instrumentation-node-redis
 
 [![Node.js CI](https://github.com/harrytwright/zipkin-instrumentation-node-redis/actions/workflows/node.js.yml/badge.svg?branch=releases%2Flegacy)](https://github.com/harrytwright/zipkin-instrumentation-node-redis/actions/workflows/node.js.yml)
+[![codecov](https://codecov.io/gh/harrytwright/zipkin-instrumentation-node-redis/branch/releases%2Flegacy/graph/badge.svg?token=1613IK40YF)](https://codecov.io/gh/harrytwright/zipkin-instrumentation-node-redis)
 
 > This is a small experimental re-write of the original [zipkin-instrumentation-redis](https://github.com/openzipkin/zipkin-js/blob/master/packages/zipkin-instrumentation-redis)
 
