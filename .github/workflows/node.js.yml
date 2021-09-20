@@ -25,6 +25,10 @@ jobs:
     # Docker Hub image that `container-job` executes in
     container: node:16
 
+    strategy:
+      matrix:
+        test-suite: [test, 'test:ts', coverage] # Add multiple tests but since they use the same build just do it here
+
     # Service containers to run with `container-job`
     services:
       # Label used to access the service container
@@ -48,8 +52,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Connect to Redis
-        run: npm run test
+      - name: Run ${{ matrix.test-suite }}
+        run: npm run ${{ matrix.test-suite }}
         env:
           # The hostname used to communicate with the Redis service container
           REDIS_HOST: redis
