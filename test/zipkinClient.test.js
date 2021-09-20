@@ -11,11 +11,11 @@ const socketOptions = {
   port: process.env.REDIS_PORT || 6379
 }
 
-function redis (tracer) {
-  return zipkinClient({ tracer })
+function redis (tracer, options) {
+  return zipkinClient({ tracer, ...options })
 }
 
-function expectCorrectSpanData(span, command, multi) {
+function expectCorrectSpanData(span, command, extras = { }) {
   expect(span.name).to.equal(command);
   expect(span.localEndpoint.serviceName).to.equal('unknown');
   expect(span.remoteEndpoint.serviceName).to.equal('redis');
@@ -23,8 +23,12 @@ function expectCorrectSpanData(span, command, multi) {
   // For certain tests docker on docker will be used where the host is not an ipv4
   if (require('net').isIPv4(socketOptions.host)) expect(span.remoteEndpoint.ipv4).to.equal(socketOptions.host);
 
-  if (!!multi && Array.isArray(multi)) {
-    expect(span.tags.commands).to.be.eq(JSON.stringify(multi))
+  if (('multi' in extras) && Array.isArray(extras.multi)) {
+    expect(span.tags.commands).to.be.eq(JSON.stringify(extras.multi))
+  }
+
+  if ('args' in extras && Array.isArray(extras.args)) {
+    expect(span.tags.args).to.be.eq(JSON.stringify(extras.args))
   }
 }
 
@@ -38,87 +42,99 @@ function createTracer (logSpan) {
 }
 
 describe('redis', function () {
-  let client;
+  describe('client', function () {
 
-  afterEach(async () => {
-    if (!!client) await client.quit()
-  })
+    let client;
 
-  it('should add zipkin annotations', async function () {
-    const logSpan = sinon.spy();
+    afterEach(async () => {
+      if (!!client) await client.quit()
+    })
 
-    const tracer = createTracer(logSpan)
+    it('should add zipkin annotations', async function () {
+      const logSpan = sinon.spy();
 
-    client = redis(tracer)({ socket: socketOptions })
-    await client.connect()
+      const tracer = createTracer(logSpan)
 
-    const result = await client.set('test:redis:add.zipkin', 'Hello World')
+      client = redis(tracer)({ socket: socketOptions })
+      await client.connect()
 
-    expect(result).to.be.equal('OK')
+      const result = await client.set('test:redis:client:add.zipkin', 'Hello World')
 
-    const spans = logSpan.args.map(arg => arg[0]);
-    expect(spans).to.have.length(1)
-    spans.forEach((span) => expectCorrectSpanData(span, 'set'))
-  });
-
-  // This is annoying since i'm not sure how to trigger an error that also gets me a response
-  xit('should handle redis errors', async function () {
-    const logSpan = sinon.spy();
-
-    const tracer = createTracer(logSpan)
-
-    client = redis(tracer)({ socket: socketOptions })
-    await client.connect()
-
-    try {
-      const result = await client.get('test:redis:error.zipkin')
-      expect.fail(`${result} should never be called`)
-    } catch (err) {
-      console.log(err)
-      expect(err).to.not.be.undefined
+      expect(result).to.be.equal('OK')
 
       const spans = logSpan.args.map(arg => arg[0]);
       expect(spans).to.have.length(1)
-      spans.forEach((span) => expectCorrectSpanData(span, 'get'))
-    }
+      spans.forEach((span) => expectCorrectSpanData(span, 'set'))
+    });
+
+    it('should send args if requested', async function () {
+      const logSpan = sinon.spy();
+
+      const tracer = createTracer(logSpan)
+
+      client = redis(tracer, { listArgs: true })({ socket: socketOptions })
+      await client.connect()
+
+      const result = await client.set('test:redis:client:add.args', 'Hello World')
+
+      expect(result).to.be.equal('OK')
+
+      const spans = logSpan.args.map(arg => arg[0]);
+      expect(spans).to.have.length(1)
+      spans.forEach((span) => expectCorrectSpanData(span, 'set', { args: ['test:redis:client:add.args', 'Hello World'] }))
+    });
+
+    it('should handle redis errors', async function () {
+      const logSpan = sinon.spy();
+
+      const tracer = createTracer(logSpan)
+
+      client = redis(tracer)({ socket: socketOptions })
+      await client.connect()
+
+      try {
+        const result = await client.sendCommand(['JSON.INVALID_COMMAND', 'test:redis:error.zipkin'])
+        expect.fail(`${result} should never be called`)
+      } catch (err) {
+        expect(err).to.not.be.undefined
+
+        const spans = logSpan.args.map(arg => arg[0]);
+        expect(spans).to.have.length(1)
+        spans.forEach((span) => expectCorrectSpanData(span, 'json.invalid_command'))
+      }
+    });
   });
 
-  it('should handle custom commands', async function () {
-    const logSpan = sinon.spy();
+  describe('multi', function () {
 
-    const tracer = createTracer(logSpan)
+    let client;
 
-    client = redis(tracer)({ socket: socketOptions })
-    await client.connect()
+    afterEach(async () => {
+      if (!!client) await client.quit()
+    })
 
-    const result = await client.sendCommand(['JSON.SET', 'test:redis:json.zipkin', '.', JSON.stringify({ hello: 'world' })])
+    it('should handle multi', async function () {
+      const logSpan = sinon.spy();
 
-    expect(result).to.be.equal('OK')
+      const tracer = createTracer(logSpan)
 
-    const spans = logSpan.args.map(arg => arg[0]);
-    expect(spans).to.have.length(1)
-    spans.forEach((span) => expectCorrectSpanData(span, 'json.set'))
-  });
+      client = redis(tracer, { listArgs: true })({ socket: socketOptions })
+      await client.connect()
 
-  it('should handle multi', async function () {
-    const logSpan = sinon.spy();
+      const multi = client.multi()
+      multi.set('test:redis:multi.zipkin', 'Hello World')
+      multi.expire('test:redis:multi.zipkin', (60 * 60 * 24 * 7))
+      multi.ttl('test:redis:multi.zipkin')
 
-    const tracer = createTracer(logSpan)
+      const results = await multi.exec()
 
-    client = redis(tracer)({ socket: socketOptions })
-    await client.connect()
+      expect(results).to.be.length(3)
 
-    const multi = client.multi()
-    multi.set('test:redis:multi.zipkin', 'Hello World')
-    multi.expire('test:redis:multi.zipkin', (60 * 60 * 24 * 7))
-    multi.ttl('test:redis:multi.zipkin')
+      const spans = logSpan.args.map(arg => arg[0]);
+      expect(spans).to.have.length(1)
+      spans.forEach((span) => expectCorrectSpanData(span, 'multi', ['set', 'expire', 'ttl']))
+    });
 
-    const results = await multi.exec()
-
-    expect(results).to.be.length(3)
-
-    const spans = logSpan.args.map(arg => arg[0]);
-    expect(spans).to.have.length(1)
-    spans.forEach((span) => expectCorrectSpanData(span, 'multi', ['set', 'expire', 'ttl']))
   });
 });
+
