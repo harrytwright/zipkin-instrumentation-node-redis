@@ -1,7 +1,7 @@
 // A rewrite of https://github.com/openzipkin/zipkin-js/blob/master/packages/zipkin-instrumentation-redis/src/zipkinClient.js
 // and mixed w/ node-redis < V4
 
-const { Annotation, InetAddress, Tracer } = require('zipkin')
+const { Annotation, InetAddress } = require('zipkin')
 const redis = require('redis/dist/lib/client')
 const multi = require('redis/dist/lib/multi-command')
 const { extendWithDefaultCommands } = require('redis/dist/lib/commander')
@@ -27,7 +27,7 @@ module.exports = function createZipkin ({ tracer, remoteServiceName = 'redis', s
   /**
    * @type {createClient}
    * */
-  return function createClient(options) {
+  return function createClient (options) {
     const weakMap = new WeakMap([])
     const addCmdImpl = multi.default.prototype.addCommand
     listArgs && (multi.default.prototype.addCommand = function (args, transformReply) {
@@ -88,7 +88,7 @@ module.exports = function createZipkin ({ tracer, remoteServiceName = 'redis', s
 
     redis.default.commandsExecutor = proxy(redis.default.commandsExecutor, (command, args) => {
       return command.transformArguments(args)[0].toLowerCase()
-    }, (command, args) => ['args',  JSON.stringify(command.transformArguments(args)[1])])
+    }, (command, args) => ['args', JSON.stringify(command.transformArguments(args)[1])])
 
     redis.default.prototype.sendCommand = proxy(redis.default.prototype.sendCommand, (args) => args[0], (args) => {
       return ['args', JSON.stringify(args.splice(1, args.length - 1))]
