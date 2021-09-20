@@ -1,6 +1,6 @@
 {
   "name": "zipkin-instrumentation-node-redis",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "More up-to date version of the node-redis instrumentation",
   "main": "./src/zipkinClient.js",
   "types": "./zipkin/zipkinClient.d.ts",
