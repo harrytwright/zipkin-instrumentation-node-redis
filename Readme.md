@@ -85,7 +85,7 @@ The space in node_modules including sub-dependencies:
 ```shell
 $ node ./test/size.js
 redis@next                                 2560 KB
-zipkin-instrumentation-node-redis          2662.4 KB
+zipkin-instrumentation-node-redis          2560 KB
 zipkin-instrumentation-node-redis@legacy   400 KB
 zipkin-instrumentation-redis               724 KB
 ```
