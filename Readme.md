@@ -31,3 +31,36 @@ const client = redis.createClient()
 client.set('key', 'value', redis.print)
 client.set('get', 'value', redis.print)
 ```
+
+## Replacing `redis`
+
+1. Replace the imports and call the `createZipkin` function
+
+```diff
+- const redis = require('redis');
++ const redis = require('zipkin-instrumentation-node-redis')({ tracer });
+```
+
+2. Call the `createClient` method like before
+
+```javascript
+const client = redis.createClient()
+```
+
+## Benchmark
+
+Due to the proxying nature of the way zipkin works there is a slight trade-off with performance.
+
+```shell
+$ node ./test/benchmark.js
+redis             17,805 ops/sec
+zipkin/redis      15,980 ops/sec
+```
+
+Test configuration:
+```shell
+$ uname -a
+Darwin 2015-MBP 19.6.0 Darwin Kernel Version 19.6.0: <DATE> x86_64
+$ node --version
+v16.2.0
+```

@@ -30,6 +30,7 @@
     "@types/express": "^4.17.13",
     "@types/node": "^16.9.4",
     "@types/redis": "^2.8.32",
+    "benchmark": "^2.1.4",
     "chai": "^4.3.4",
     "check-dts": "^0.5.5",
     "codecov": "^3.8.3",
