@@ -1,8 +1,9 @@
 const chai = require('chai')
-const sinon = require('sinon');
-const { Tracer, ExplicitContext, BatchRecorder } = require('zipkin');
+const sinon = require('sinon')
 
-const zipkinClient = require('../src/zipkinClient');
+const zipkinClient = require('../src/zipkinClient')
+
+const { expectCorrectSpanData, createTracer } = require('./utils/tracer')
 
 const expect = chai.expect
 
@@ -11,37 +12,20 @@ const redisOptions = {
   port: process.env.REDIS_PORT || 6379
 }
 
-function redis (tracer) {
-  return zipkinClient({ tracer })
-}
-
-function expectCorrectSpanData(span, command, multi) {
-  expect(span.name).to.equal(command);
-  expect(span.localEndpoint.serviceName).to.equal('unknown');
-  expect(span.remoteEndpoint.serviceName).to.equal('redis');
-
-  // For certain tests docker on docker will be used where the host is not an ipv4
-  if (require('net').isIPv4(redisOptions.host)) expect(span.remoteEndpoint.ipv4).to.equal(redisOptions.host);
-
-  if (!!multi && Array.isArray(multi)) {
-    expect(span.tags.commands).to.be.eq(JSON.stringify(multi))
-  }
-}
-
-function createTracer (logSpan) {
-  const ctxImpl = new ExplicitContext();
-  const recorder = new BatchRecorder({ logger: { logSpan } });
-  const tracer = new Tracer({ctxImpl, recorder});
-  tracer.setId(tracer.createRootId());
-
-  return tracer
+function redis (tracer, options) {
+  return zipkinClient({ tracer, ...options })
 }
 
 describe('redis', function () {
   let client;
 
-  afterEach(() => {
-    if (!!client) client.unref()
+  afterEach((done) => {
+    if (!!client) {
+      return client.flushdb(() => {
+        client.quit(done)
+      })
+    }
+    done()
   })
 
   it('should add zipkin annotations', function (done) {
@@ -58,7 +42,10 @@ describe('redis', function () {
 
         const spans = logSpan.args.map(arg => arg[0]);
         expect(spans).to.have.length(1)
-        spans.forEach((span) => expectCorrectSpanData(span, 'set'))
+        spans.forEach((span) => expectCorrectSpanData(expect)({
+          command: 'set',
+          span
+        }))
 
         done()
       })
@@ -77,7 +64,10 @@ describe('redis', function () {
 
         const spans = logSpan.args.map(arg => arg[0]);
         expect(spans).to.have.length(1)
-        spans.forEach((span) => expectCorrectSpanData(span, 'expire'))
+        spans.forEach((span) => expectCorrectSpanData(expect)({
+          command: 'expire',
+          span
+        }))
 
         done()
       })
@@ -103,7 +93,10 @@ describe('redis', function () {
 
         const spans = logSpan.args.map(arg => arg[0]);
         expect(spans).to.have.length(1)
-        spans.forEach((span) => expectCorrectSpanData(span, 'json.set'))
+        spans.forEach((span) => expectCorrectSpanData(expect)({
+          command: 'json.set',
+          span
+        }))
 
         done()
       })
@@ -129,7 +122,11 @@ describe('redis', function () {
 
         const spans = logSpan.args.map(arg => arg[0]);
         expect(spans).to.have.length(1)
-        spans.forEach((span) => expectCorrectSpanData(span, 'multi', ['set', 'expire', 'ttl']))
+        spans.forEach((span) => expectCorrectSpanData(expect)({
+          multi: ['set', 'expire', 'ttl'],
+          command: 'multi',
+          span,
+        }))
 
         done()
       })

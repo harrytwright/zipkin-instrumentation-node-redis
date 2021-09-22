@@ -129,12 +129,12 @@ module.exports = ({ tracer, remoteServiceName = 'redis', serviceName = tracer.lo
   }
 
   // Return a mock'd like version of redis to be used in it's place
-  const exports = {...redis}
-  exports.createClient = function () {
-    return new Redis(unifyOptions.apply(null, arguments))
+  return {
+    ...redis,
+    createClient: function () {
+      return new Redis(unifyOptions.apply(null, arguments))
+    },
+    addCommand: _addCommand,
+    add_command: _addCommand
   }
-
-  exports.addCommand = exports.add_command = _addCommand
-
-  return exports
 }
