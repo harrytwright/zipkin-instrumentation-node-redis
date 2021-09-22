@@ -3,9 +3,9 @@
   "version": "1.1.0",
   "description": "More up-to date version of the node-redis instrumentation",
   "main": "./src/zipkinClient.js",
-  "types": "./zipkin/zipkinClient.d.ts",
+  "types": "./src/zipkinClient.d.ts",
   "scripts": {
-    "test": "mocha --exit",
+    "test": "mocha ./**/*.test.js --exit",
     "test:ts": "check-dts",
     "coverage": "nyc --reporter=lcov npm run test",
     "postcoverage": "codecov",
@@ -23,19 +23,21 @@
     "redis": "^4.0.0-rc.1"
   },
   "peerDependencies": {
-    "zipkin": "^0.22.0"
+    "zipkin": "^0.22.0",
+    "zipkin-context-cls": "^0.22.0"
   },
   "devDependencies": {
     "@types/express": "^4.17.13",
     "@types/node": "^16.9.1",
+    "benchmark": "^2.1.4",
     "chai": "^4.3.4",
+    "chai-http": "^4.3.0",
     "check-dts": "^0.5.5",
     "codecov": "^3.8.3",
     "express": "^4.17.1",
     "mocha": "^9.1.1",
     "nyc": "^15.1.0",
     "sinon": "^11.1.2",
-    "zipkin-context-cls": "^0.22.0",
     "zipkin-instrumentation-express": "^0.22.0",
     "zipkin-transport-http": "^0.22.0"
   }

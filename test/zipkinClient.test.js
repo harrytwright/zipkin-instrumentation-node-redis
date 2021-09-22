@@ -1,8 +1,9 @@
 const chai = require('chai')
 const sinon = require('sinon');
-const { Tracer, ExplicitContext, BatchRecorder } = require('zipkin');
 
 const zipkinClient = require('../src/zipkinClient');
+
+const { createTracer, expectCorrectSpanData } = require('./utils/tracer')
 
 const expect = chai.expect
 
@@ -15,39 +16,16 @@ function redis (tracer, options) {
   return zipkinClient({ tracer, ...options })
 }
 
-function expectCorrectSpanData(span, command, extras = { }) {
-  expect(span.name).to.equal(command);
-  expect(span.localEndpoint.serviceName).to.equal('unknown');
-  expect(span.remoteEndpoint.serviceName).to.equal('redis');
-
-  // For certain tests docker on docker will be used where the host is not an ipv4
-  if (require('net').isIPv4(socketOptions.host)) expect(span.remoteEndpoint.ipv4).to.equal(socketOptions.host);
-
-  if (('multi' in extras) && Array.isArray(extras.multi)) {
-    expect(span.tags.commands).to.be.eq(JSON.stringify(extras.multi))
-  }
-
-  if ('args' in extras && Array.isArray(extras.args)) {
-    expect(span.tags.args).to.be.eq(JSON.stringify(extras.args))
-  }
-}
-
-function createTracer (logSpan) {
-  const ctxImpl = new ExplicitContext();
-  const recorder = new BatchRecorder({ logger: { logSpan } });
-  const tracer = new Tracer({ ctxImpl, recorder });
-  tracer.setId(tracer.createRootId());
-
-  return tracer
-}
-
 describe('redis', function () {
   describe('client', function () {
 
     let client;
 
     afterEach(async () => {
-      if (!!client) await client.quit()
+      if (!!client) {
+        await client.flushDb()
+        await client.quit()
+      }
     })
 
     it('should add zipkin annotations', async function () {
@@ -64,7 +42,7 @@ describe('redis', function () {
 
       const spans = logSpan.args.map(arg => arg[0]);
       expect(spans).to.have.length(1)
-      spans.forEach((span) => expectCorrectSpanData(span, 'set'))
+      spans.forEach((span) => expectCorrectSpanData(expect)({ span, command: 'set' }))
     });
 
     it('should send args if requested', async function () {
@@ -81,7 +59,12 @@ describe('redis', function () {
 
       const spans = logSpan.args.map(arg => arg[0]);
       expect(spans).to.have.length(1)
-      spans.forEach((span) => expectCorrectSpanData(span, 'set', { args: ['test:redis:client:add.args', 'Hello World'] }))
+
+      spans.forEach((span) => expectCorrectSpanData(expect)({
+        args: ['test:redis:client:add.args', 'Hello World'],
+        command: 'set',
+        span
+      }))
     });
 
     it('should handle redis errors', async function () {
@@ -100,7 +83,11 @@ describe('redis', function () {
 
         const spans = logSpan.args.map(arg => arg[0]);
         expect(spans).to.have.length(1)
-        spans.forEach((span) => expectCorrectSpanData(span, 'json.invalid_command'))
+
+        spans.forEach((span) => expectCorrectSpanData(expect)({
+          command: 'json.invalid_command',
+          span
+        }))
       }
     });
   });
@@ -132,7 +119,12 @@ describe('redis', function () {
 
       const spans = logSpan.args.map(arg => arg[0]);
       expect(spans).to.have.length(1)
-      spans.forEach((span) => expectCorrectSpanData(span, 'multi', ['set', 'expire', 'ttl']))
+
+      spans.forEach((span) => expectCorrectSpanData(expect)({
+        multi: ['set', 'expire', 'ttl'],
+        command: 'multi',
+        span
+      }))
     });
 
   });

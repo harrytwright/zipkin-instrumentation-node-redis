@@ -23,10 +23,11 @@ jobs:
     runs-on: ubuntu-latest
 
     # Docker Hub image that `container-job` executes in
-    container: node:16
+    container: node:${{ matrix.node-version }}
 
     strategy:
       matrix:
+        node-version: [16, 14, 12]
         test-suite: [test, 'test:ts', coverage] # Add multiple tests but since they use the same build just do it here
 
     # Service containers to run with `container-job`
