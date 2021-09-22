@@ -49,12 +49,23 @@ const client = redis.createClient()
 
 ## Benchmark
 
-Due to the proxying nature of the way zipkin works there is a slight trade-off with performance.
+> Due to the proxying nature of the way zipkin works there is a slight trade-off with performance.
+
+Function calling time:
 
 ```shell
 $ node ./test/benchmark.js
 redis             17,805 ops/sec
 zipkin/redis      15,980 ops/sec
+```
+
+The space in node_modules including sub-dependencies:
+
+```shell
+$ node ./test/size.js
+redis                                      376 KB
+zipkin-instrumentation-node-redis@legacy   424 KB
+zipkin-instrumentation-redis               724 KB # The original instrumentation
 ```
 
 Test configuration:
