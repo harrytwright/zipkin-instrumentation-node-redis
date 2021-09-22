@@ -15,6 +15,22 @@ const { extendWithDefaultCommands } = require('redis/dist/lib/commander')
  * */
 
 /**
+ * Workaround for optional chaining
+ *
+ * @param {any} initialValue
+ * @param {Function} fn
+ * */
+const ifLet = (initialValue, ...fn) => {
+  let value = initialValue
+  for (let i = 0; i < fn.length; i++) {
+    if (!value) break
+    value = fn[i](value)
+  }
+  return value
+}
+
+
+/**
  * @param {Object} data
  * @param {module::zipkin.Tracer} data.tracer -
  * @param {string} [data.remoteServiceName] -
@@ -107,8 +123,8 @@ module.exports = function createZipkin ({ tracer, remoteServiceName = 'redis', s
       tracer.recordAnnotation(new Annotation.ServiceName(serviceName))
       tracer.recordAnnotation(new Annotation.ServerAddr({
         serviceName: remoteServiceName,
-        host: new InetAddress(options?.socket?.host || /* istanbul ignore next */ '127.0.0.1'), // This is a guess work
-        port: options?.socket?.port || /* istanbul ignore next */ 6379
+        host: new InetAddress(ifLet(options, (options) => options.socket, (socket) => socket.host) || /* istanbul ignore next */ '127.0.0.1'), // This is a guess work
+        port: ifLet(options, (options) => options.socket, (socket) => socket.port) || /* istanbul ignore next */ 6379
       }))
       tracer.recordAnnotation(new Annotation.ClientSend())
     }
