@@ -5,6 +5,13 @@ const commands = require('redis-commands')
 const { Annotation, InetAddress, Tracer } = require('zipkin')
 const { RedisClient, Multi, addCommand, ...redis } = require('redis')
 
+// When using redis-mock this fails, so adding a test case
+let MockedClient;
+try {
+  const { RedisClient } = require('redis-mock')
+  MockedClient = RedisClient
+} catch (e) { }
+
 const unifyOptions = require('redis/lib/createClient')
 
 /* istanbul ignore next */
@@ -84,6 +91,9 @@ module.exports = ({ tracer, remoteServiceName = 'redis', serviceName = tracer.lo
 
     // https://github.com/NodeRedis/node-redis/blob/4f85030e42da2eed6a178e54994330af5062761e/lib/commands.js#L11
     const commandName = command.replace(/(?:^([0-9])|[^a-zA-Z0-9_$])/g, '_$1')
+
+    // If we're in a mock we shouldn't run this
+    if (RedisClient === MockedClient) return
 
     const prevImpl = Redis.prototype[command]
     Redis.prototype[command] = Redis.prototype[command.toUpperCase()] = function (...args) {
