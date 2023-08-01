@@ -2,9 +2,10 @@
 // and mixed w/ node-redis < V4
 
 const { Annotation, InetAddress } = require('zipkin')
-const redis = require('redis/dist/lib/client')
-const multi = require('redis/dist/lib/multi-command')
-const { extendWithDefaultCommands } = require('redis/dist/lib/commander')
+const redis = require('@redis/client/dist/lib/client')
+const multi = require('@redis/client/dist/lib/client/multi-command')
+const commands = require('@redis/client/dist/lib/client/commands').default
+const { attachCommands } = require('@redis/client/dist/lib/commander')
 
 /**
  * @callback createClient
@@ -102,7 +103,7 @@ module.exports = function createZipkin ({ tracer, remoteServiceName = 'redis', s
       }
     }
 
-    redis.default.commandsExecutor = proxy(redis.default.commandsExecutor, (command, args) => {
+    redis.default.prototype.commandsExecutor = proxy(redis.default.prototype.commandsExecutor, (command, args) => {
       return command.transformArguments(args)[0].toLowerCase()
     }, (command, args) => ['args', JSON.stringify(command.transformArguments(args)[1])])
 
@@ -116,7 +117,9 @@ module.exports = function createZipkin ({ tracer, remoteServiceName = 'redis', s
     })
 
     // Pass the new `commandsExecutor` method to commander
-    extendWithDefaultCommands(redis.default, redis.default.commandsExecutor)
+    attachCommands({
+      BaseClass: redis.default, executor: redis.default.prototype.commandsExecutor, commands
+    })
 
     function commonAnnotations (rpc) {
       tracer.recordRpc(rpc)

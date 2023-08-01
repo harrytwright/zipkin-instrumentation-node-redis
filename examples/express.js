@@ -20,7 +20,7 @@
     localServiceName: 'example' // name of this application
   });
 
-  const client = require('../src/zipkinClient')({ tracer })(
+  const client = require('../src/zipkinClient')({ tracer, listArgs: true })(
     { socket: { port: process.env.REDIS_PORT, host: process.env.REDIS_HOST } }
   )
 
@@ -50,7 +50,7 @@
     return res.status(200).send(req.__cache_value).end()
   })
 
-  app.listen(3000, () => {
+  app.listen(4050, () => {
     console.log('Starting at 3000')
   })
 

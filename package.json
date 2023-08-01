@@ -20,7 +20,7 @@
   "author": "Harry Wright",
   "license": "Apache-2.0",
   "dependencies": {
-    "redis": "^4.0.0-rc.1"
+    "@redis/client": "1.5.8"
   },
   "peerDependencies": {
     "zipkin": "^0.22.0",
