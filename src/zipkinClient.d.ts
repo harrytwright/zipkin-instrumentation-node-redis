@@ -1,16 +1,10 @@
 import { Tracer } from 'zipkin'
-import RedisClient, { RedisClientOptions, RedisClientType } from 'redis/dist/lib/client'
-import { RedisModules } from "redis/dist/lib/commands";
-import { RedisLuaScripts } from "redis/dist/lib/lua-script";
+import { RedisDefaultModules } from 'redis'
+import { RedisModules, RedisFunctions, RedisScripts, RedisClientOptions, RedisClientType as _RedisClientType, RedisClusterOptions, RedisClusterType as _RedisClusterType } from '@redis/client';
 
-declare function _exports({ tracer, remoteServiceName, serviceName, listArgs }: {
+export default function <M extends RedisModules, F extends RedisFunctions, S extends RedisScripts>({ tracer, remoteServiceName, serviceName, listArgs }: {
     tracer: Tracer;
     remoteServiceName?: string;
     serviceName?: string;
     listArgs?: Boolean;
-}): createClient;
-
-export type createClient = <M extends RedisModules, S extends RedisLuaScripts>(options?: RedisClientOptions<M, S>) => RedisClientType<M, S>;
-
-export default _exports;
-// <M extends RedisModules, S extends RedisLuaScripts>(options?: RedisClientOptions<M, S>): RedisClientType<M, S>
+}): (options?: RedisClientOptions<M, F, S>) => _RedisClientType<RedisDefaultModules & M, F, S>;
