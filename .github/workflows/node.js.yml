@@ -27,7 +27,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [20, 18, 16, 14]
+        node-version: [20, 18, 16]
         test-suite: [test, coverage] # Add multiple tests but since they use the same build just do it here
 
     # Service containers to run with `container-job`
@@ -46,7 +46,7 @@ jobs:
     steps:
       # Downloads a copy of the code in your repository before running CI tests
       - name: Check out repository code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       # Performs a clean installation of all dependencies in the `package.json` file
       # For more information, see https://docs.npmjs.com/cli/ci.html
