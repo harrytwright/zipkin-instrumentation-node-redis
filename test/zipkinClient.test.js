@@ -139,6 +139,23 @@ describe('redis', function () {
       }
     })
 
+    it('should handle ping', async () => {
+      const logSpan = sinon.spy();
+
+      const tracer = createTracer(logSpan)
+
+      client = redis(tracer, { listArgs: true })({ socket: socketOptions })
+      await client.connect()
+
+      const result = await client.ping()
+
+      expect(result).to.be.equal('PONG')
+
+      const spans = logSpan.args.map(arg => arg[0]);
+      expect(spans).to.have.length(1)
+      spans.forEach((span) => expectCorrectSpanData(expect)({ span, command: 'ping' }))
+    });
+
     it('should not throw on hset', async () => {
       const logSpan = sinon.spy();
 

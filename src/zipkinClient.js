@@ -75,7 +75,7 @@ module.exports = function createZipkin ({ tracer, remoteServiceName = 'redis', s
             commonAnnotations(rpcFn(...args))
             if (listArgs && binaryFn) {
               const [key, value] = binaryFn.apply(this, [...args])
-              if (value) { tracer.recordBinary(key, value) }
+              if (value && value !== JSON.stringify([])) { tracer.recordBinary(key, value) }
             }
           })
 
