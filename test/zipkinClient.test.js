@@ -128,5 +128,33 @@ describe('redis', function () {
     });
 
   });
+
+  describe('gh0005', function () {
+    let client;
+
+    afterEach(async () => {
+      if (!!client) {
+        await client.flushDb()
+        await client.quit()
+      }
+    })
+
+    it('should not throw on hset', async () => {
+      const logSpan = sinon.spy();
+
+      const tracer = createTracer(logSpan)
+
+      client = redis(tracer)({ socket: socketOptions })
+      await client.connect()
+
+      const result = await client.hSet('test:redis:client:hset:add.zipkin', 'Hello World', 1)
+
+      expect(result).to.be.equal(1)
+
+      const spans = logSpan.args.map(arg => arg[0]);
+      expect(spans).to.have.length(1)
+      spans.forEach((span) => expectCorrectSpanData(expect)({ span, command: 'hset' }))
+    });
+  });
 });
 

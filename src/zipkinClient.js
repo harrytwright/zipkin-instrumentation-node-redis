@@ -30,7 +30,6 @@ const ifLet = (initialValue, ...fn) => {
   return value
 }
 
-
 /**
  * @param {Object} data
  * @param {module::zipkin.Tracer} data.tracer -
@@ -76,7 +75,7 @@ module.exports = function createZipkin ({ tracer, remoteServiceName = 'redis', s
             commonAnnotations(rpcFn(...args))
             if (listArgs && binaryFn) {
               const [key, value] = binaryFn.apply(this, [...args])
-              tracer.recordBinary(key, value)
+              if (value) { tracer.recordBinary(key, value) }
             }
           })
 
@@ -104,8 +103,8 @@ module.exports = function createZipkin ({ tracer, remoteServiceName = 'redis', s
     }
 
     redis.default.prototype.commandsExecutor = proxy(redis.default.prototype.commandsExecutor, (command, args) => {
-      return command.transformArguments(args)[0].toLowerCase()
-    }, (command, args) => ['args', JSON.stringify(command.transformArguments(args)[1])])
+      return command.transformArguments(...args)[0].toLowerCase()
+    }, (command, args) => ['args', JSON.stringify(command.transformArguments(...args).slice(1))])
 
     redis.default.prototype.sendCommand = proxy(redis.default.prototype.sendCommand, (args) => args[0], (args) => {
       return ['args', JSON.stringify(args.splice(1, args.length - 1))]
