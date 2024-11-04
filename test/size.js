@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 
-let { mkdirSync, rmSync, writeFileSync } = require('fs')
-let { execSync } = require('child_process')
-let { join } = require('path')
+const { mkdirSync, rmSync, writeFileSync } = require('fs')
+const { execSync } = require('child_process')
+const { join } = require('path')
 
-function getSize(lib) {
-  let testDir = join(__dirname, 'size-test')
+function getSize (lib) {
+  const testDir = join(__dirname, 'size-test')
   mkdirSync(testDir)
   writeFileSync(join(testDir, 'package.json'), '{"private":true}')
   execSync(`yarn add ${lib}`, { cwd: testDir })
-  let out = execSync(`du -sh node_modules/`, { cwd: testDir }).toString()
+  const out = execSync('du -sh node_modules/', { cwd: testDir }).toString()
   rmSync(testDir, { recursive: true, force: true })
   if (out.includes('M')) {
     return String(parseFloat(out.match(/^(\d+\.?\d*)M/)[1]) * 1024)
@@ -18,7 +18,7 @@ function getSize(lib) {
   }
 }
 
-function benchmark(lib) {
+function benchmark (lib) {
   process.stdout.write(
     lib.padEnd('zipkin-instrumentation-node-redis@legacy  '.length) +
     getSize(lib).padStart(4) +

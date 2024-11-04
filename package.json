@@ -5,9 +5,9 @@
   "main": "./src/zipkinClient.js",
   "types": "./src/zipkinClient.d.ts",
   "scripts": {
-    "test": "mocha ./**/*.test.js --exit",
+    "test": "jest ./**/*.test.js",
     "test:ts": "check-dts ./src/*.ts",
-    "coverage": "nyc --reporter=lcov npm run test",
+    "coverage": "npm run test -- --coverage",
     "lint": "npx standard ./src/**/*.js --fix",
     "lint:test": "npx standard ./src/**/*.js"
   },
@@ -20,7 +20,9 @@
   "author": "Harry Wright",
   "license": "Apache-2.0",
   "dependencies": {
-    "@redis/client": "^1.6.0"
+    "@redis/client": "^1.6.0",
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
   },
   "peerDependencies": {
     "redis": "^4.6.13",
@@ -35,6 +37,7 @@
     "chai-http": "^4.4.0",
     "check-dts": "^0.8.2",
     "codecov": "^3.8.3",
+    "dotenv": "^16.4.5",
     "express": "^4.19.1",
     "mocha": "^10.3.0",
     "nyc": "^15.1.0",
