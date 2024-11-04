@@ -8,7 +8,6 @@
     "test": "mocha ./**/*.test.js --exit",
     "test:ts": "check-dts ./src/*.ts",
     "coverage": "nyc --reporter=lcov npm run test",
-    "postcoverage": "codecov",
     "lint": "npx standard ./src/**/*.js --fix",
     "lint:test": "npx standard ./src/**/*.js"
   },
