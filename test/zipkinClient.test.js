@@ -1,11 +1,6 @@
-const chai = require('chai')
-const sinon = require('sinon')
-
 const zipkinClient = require('../src/zipkinClient')
 
 const { createTracer, expectCorrectSpanData } = require('./utils/tracer')
-
-// const expect = chai.expect
 
 const socketOptions = {
   host: process.env.REDIS_HOST || '127.0.0.1',
